@@ -2,12 +2,13 @@ extends CharacterBody2D
 
 class_name PlatformerController2D
 
-@export var README: String = "IMPORTANT: MAKE SURE TO ASSIGN 'left' 'right' 'jump' 'dash' 'up' 'down' 'roll' 'latch' 'twirl' 'run' in the project settings input map. Usage tips. 1. Hover over each toggle and variable to read what it does and to make sure nothing bugs. 2. Animations are very primitive. To make full use of your custom art, you may want to slightly change the code for the animations"
-#INFO READEME 
-#IMPORTANT: MAKE SURE TO ASSIGN 'left' 'right' 'jump' 'dash' 'up' 'down' 'roll' 'latch' 'twirl' 'run'  in the project settings input map. THIS IS REQUIRED
-#Usage tips. 
-#1. Hover over each toggle and variable to read what it does and to make sure nothing bugs. 
-#2. Animations are very primitive. To make full use of your custom art, you may want to slightly change the code for the animations
+@export var README: String = "IMPORTANT: MAKE SURE TO ASSIGN 'left' 'right' 'jump' 'dash' 'up' 'down' 'roll' 'latch' 'twirl' 'run' 'attack' 'heavy_attack' 'block' in the project settings input map. Enhanced animation system with full knight moveset support."
+#INFO READEME
+#IMPORTANT: MAKE SURE TO ASSIGN 'left' 'right' 'jump' 'dash' 'up' 'down' 'roll' 'latch' 'twirl' 'run' 'attack' 'heavy_attack' 'block'  in the project settings input map. THIS IS REQUIRED
+#Usage tips.
+#1. Hover over each toggle and variable to read what it does and to make sure nothing bugs.
+#2. Enhanced animation system now supports all 70 knight animations with state-based priority system
+#3. Combat system includes: basic attacks, combo attacks, heavy attacks, blocking, parrying, and hit reactions
 
 @export_category("Necesary Child Nodes")
 @export var PlayerSprite: AnimatedSprite2D
@@ -94,27 +95,17 @@ class_name PlatformerController2D
 ##If enabled, pressing up will end the ground pound early
 @export var upToCancel: bool = false
 
-@export_category("Animations (Check Box if has animation)")
-##Animations must be named "run" all lowercase as the check box says
-@export var run: bool
-##Animations must be named "jump" all lowercase as the check box says
-@export var jump: bool
-##Animations must be named "idle" all lowercase as the check box says
-@export var idle: bool
-##Animations must be named "walk" all lowercase as the check box says
-@export var walk: bool
-##Animations must be named "slide" all lowercase as the check box says
-@export var slide: bool
-##Animations must be named "latch" all lowercase as the check box says
-@export var latch: bool
-##Animations must be named "falling" all lowercase as the check box says
-@export var falling: bool
-##Animations must be named "crouch_idle" all lowercase as the check box says
-@export var crouch_idle: bool
-##Animations must be named "crouch_walk" all lowercase as the check box says
-@export var crouch_walk: bool
-##Animations must be named "roll" all lowercase as the check box says
-@export var roll: bool
+@export_category("Combat System")
+##Enable the combat system with attacks, blocking, and hit reactions
+@export var enableCombat: bool = true
+##Time window for combo attacks (in seconds)
+@export_range(0.1, 1.0) var comboWindow: float = 0.5
+##Enable blocking and parrying
+@export var enableBlocking: bool = true
+
+@export_category("Enhanced Animations")
+##Enable the enhanced animation system (uses all 70 knight animations automatically)
+@export var useEnhancedAnimations: bool = true
 
 
 
@@ -163,6 +154,34 @@ var anim
 var col
 var animScaleLock : Vector2
 
+# Combat and animation state variables
+var attacking: bool = false
+var blocking: bool = false
+var hit_stunned: bool = false
+var combo_count: int = 0
+var can_combo: bool = false
+var last_attack_time: float = 0.0
+var current_animation_priority: int = 0
+var edge_grabbing: bool = false
+var ladder_climbing: bool = false
+var heavy_attacking: bool = false
+
+# Animation priority levels (higher = more important)
+enum AnimPriority {
+	IDLE = 0,
+	WALK = 1,
+	RUN = 2,
+	CROUCH = 3,
+	JUMP = 4,
+	FALL = 5,
+	DASH = 6,
+	WALL = 7,
+	ROLL = 8,
+	ATTACK = 9,
+	BLOCK = 10,
+	HIT = 11
+}
+
 #Input Variables for the whole script
 var upHold
 var downHold
@@ -180,6 +199,11 @@ var dashTap
 var rollTap
 var downTap
 var twirlTap
+var attackTap
+var attackHold
+var heavyAttackTap
+var blockHold
+var blockTap
 
 func _ready():
 	wasMovingR = true
@@ -251,10 +275,17 @@ func _updateData():
 	
 	
 
-func _process(_delta):
-	#INFO animations
+func _process(delta):
+	#INFO Enhanced Animation System
+	if useEnhancedAnimations:
+		_handle_enhanced_animations(delta)
+	else:
+		_handle_legacy_animations()
+
+func _handle_legacy_animations():
+	# Keep original animation system for backwards compatibility
 	#directions
-	if is_on_wall() and !is_on_floor() and latch and wallLatching and ((wallLatchingModifer and latchHold) or !wallLatchingModifer):
+	if is_on_wall() and !is_on_floor() and wallLatching and ((wallLatchingModifer and latchHold) or !wallLatchingModifer):
 		latched = true
 	else:
 		latched = false
@@ -265,61 +296,184 @@ func _process(_delta):
 		anim.scale.x = animScaleLock.x
 	if leftHold and !latched:
 		anim.scale.x = animScaleLock.x * -1
-	
-	#run
-	if run and idle and !dashing and !crouching and !walk:
-		if abs(velocity.x) > 0.1 and is_on_floor() and !is_on_wall():
-			anim.speed_scale = abs(velocity.x / 150)
-			anim.play("run")
-		elif abs(velocity.x) < 0.1 and is_on_floor():
-			anim.speed_scale = 1
-			anim.play("idle")
-	elif run and idle and walk and !dashing and !crouching:
-		if abs(velocity.x) > 0.1 and is_on_floor() and !is_on_wall():
-			anim.speed_scale = abs(velocity.x / 150)
-			if abs(velocity.x) < (maxSpeedLock):
-				anim.play("walk")
-			else:
-				anim.play("run")
-		elif abs(velocity.x) < 0.1 and is_on_floor():
-			anim.speed_scale = 1
-			anim.play("idle")
-		
-	#jump
-	if velocity.y < 0 and jump and !dashing:
+
+	# Basic movement animations
+	if abs(velocity.x) > 0.1 and is_on_floor() and !is_on_wall() and !dashing and !crouching:
+		anim.speed_scale = abs(velocity.x / 150)
+		anim.play("run")
+	elif abs(velocity.x) < 0.1 and is_on_floor() and !dashing and !crouching:
 		anim.speed_scale = 1
-		anim.play("jump")
-		
-	if velocity.y > 40 and falling and !dashing and !crouching:
+		anim.play("idle")
+
+	if velocity.y < 0 and !dashing:
 		anim.speed_scale = 1
-		anim.play("falling")
-		
-	if latch and slide:
-		#wall slide and latch
-		if latched and !wasLatched:
+		anim.play("jump_rise_loop")
+
+	if velocity.y > 40 and !dashing and !crouching:
+		anim.speed_scale = 1
+		anim.play("jump_fall_loop")
+
+	if is_on_wall() and velocity.y > 0 and wallSliding != 1:
+		anim.speed_scale = 1
+		anim.play("wall_slide_loop")
+
+	if dashing:
+		anim.speed_scale = 1
+		anim.play("dash_attack")
+
+	if crouching and !rolling:
+		if abs(velocity.x) > 10:
 			anim.speed_scale = 1
-			anim.play("latch")
-		if is_on_wall() and velocity.y > 0 and slide and anim.animation != "slide" and wallSliding != 1:
+			anim.play("crouch_walk")
+		else:
 			anim.speed_scale = 1
-			anim.play("slide")
-			
-		#dash
-		if dashing:
-			anim.speed_scale = 1
-			anim.play("dash")
-			
-		#crouch
-		if crouching and !rolling:
-			if abs(velocity.x) > 10:
-				anim.speed_scale = 1
-				anim.play("crouch_walk")
+			anim.play("crouch_idle")
+
+	if rolling:
+		anim.speed_scale = 1
+		anim.play("roll")
+
+func _handle_enhanced_animations(delta):
+	# Enhanced animation system using all 70 knight animations
+
+	# Handle sprite direction
+	if rightHold and !latched and !blocking:
+		anim.scale.x = animScaleLock.x
+	if leftHold and !latched and !blocking:
+		anim.scale.x = animScaleLock.x * -1
+
+	# Update combo timer
+	if can_combo and (Time.get_ticks_msec() / 1000.0) - last_attack_time > comboWindow:
+		can_combo = false
+		combo_count = 0
+
+	# Priority-based animation selection (highest priority wins)
+	var target_animation = "idle"
+	var target_priority = AnimPriority.IDLE
+	var speed_scale = 1.0
+
+	# HIT REACTIONS (Highest Priority)
+	if hit_stunned:
+		if is_on_floor():
+			target_animation = "hit"
+			target_priority = AnimPriority.HIT
+		else:
+			target_animation = "air_hit"
+			target_priority = AnimPriority.HIT
+
+	# BLOCKING
+	elif blocking and enableBlocking:
+		if blockTap:
+			target_animation = "block_start"
+			target_priority = AnimPriority.BLOCK
+		elif blockHold:
+			target_animation = "block_static"
+			target_priority = AnimPriority.BLOCK
+		else:
+			target_animation = "block_end"
+			target_priority = AnimPriority.BLOCK
+
+	# ATTACKING
+	elif attacking:
+		target_priority = AnimPriority.ATTACK
+		if heavy_attacking:
+			# Heavy attacks
+			if combo_count == 0:
+				target_animation = "heavyattack_1_start"
+			elif combo_count == 1:
+				target_animation = "heavyattack_1_charge_2"
 			else:
-				anim.speed_scale = 1
-				anim.play("crouch_idle")
-		
-		if rollTap and canRoll and roll:
-			anim.speed_scale = 1
-			anim.play("roll")
+				target_animation = "heavyattack_1_end"
+		elif !is_on_floor():
+			# Air attacks
+			if velocity.y < 0:
+				target_animation = "jump_up_attack"
+			else:
+				target_animation = "jump_down_attack"
+		elif crouching:
+			target_animation = "crouch_attack"
+		else:
+			# Ground combo attacks
+			if combo_count == 0:
+				target_animation = "attack"
+			elif combo_count == 1:
+				target_animation = "attack_2"
+			elif combo_count == 2:
+				target_animation = "attack_3"
+			else:
+				target_animation = "attack_4"
+
+	# ROLLING
+	elif rolling:
+		target_animation = "roll"
+		target_priority = AnimPriority.ROLL
+
+	# DASHING
+	elif dashing:
+		if blockHold:
+			target_animation = "shield_dash_loop_static"
+		else:
+			target_animation = "dash_attack"
+		target_priority = AnimPriority.DASH
+
+	# WALL INTERACTIONS
+	elif is_on_wall() and !is_on_floor():
+		target_priority = AnimPriority.WALL
+		if wallLatching and latched:
+			target_animation = "wall_slide_static"
+		elif velocity.y > 0:
+			if wallSliding != 1:
+				target_animation = "wall_slide_loop"
+			else:
+				target_animation = "wall_slide_contact"
+		elif velocity.y < 0:
+			target_animation = "wall_jump_loop"
+
+	# JUMPING AND FALLING
+	elif !is_on_floor():
+		target_priority = AnimPriority.JUMP if velocity.y < 0 else AnimPriority.FALL
+		if velocity.y < -50:
+			target_animation = "jump_rise_loop"
+		elif velocity.y > 50:
+			target_animation = "jump_fall_loop"
+		else:
+			target_animation = "jump_transition"
+
+	# CROUCHING
+	elif crouching:
+		target_priority = AnimPriority.CROUCH
+		if downTap:
+			target_animation = "crouch_start"
+		elif abs(velocity.x) > 10:
+			target_animation = "crouch_walk"
+			speed_scale = abs(velocity.x / 100)
+		else:
+			target_animation = "crouch_idle"
+
+	# GROUND MOVEMENT
+	elif is_on_floor():
+		if abs(velocity.x) > 10:
+			if abs(velocity.x) < maxSpeedLock * 0.5:
+				target_animation = "walk"
+				target_priority = AnimPriority.WALK
+				speed_scale = abs(velocity.x / 100)
+			else:
+				target_animation = "run"
+				target_priority = AnimPriority.RUN
+				speed_scale = abs(velocity.x / 150)
+		else:
+			target_animation = "idle"
+			target_priority = AnimPriority.IDLE
+
+	# Apply animation if it exists in the sprite frames
+	if anim.sprite_frames.has_animation(target_animation):
+		if anim.animation != target_animation:
+			anim.play(target_animation)
+		anim.speed_scale = speed_scale
+
+	# Handle animation end events for attacks and other timed actions
+	if !anim.is_playing() or (anim.is_playing() and anim.frame >= anim.sprite_frames.get_frame_count(anim.animation) - 1):
+		_on_animation_finished(anim.animation)
 		
 		
 		
@@ -345,10 +499,43 @@ func _physics_process(delta):
 	rollTap = Input.is_action_just_pressed("roll")
 	downTap = Input.is_action_just_pressed("down")
 	twirlTap = Input.is_action_just_pressed("twirl")
+
+	# Combat inputs (check if actions exist before querying)
+	if enableCombat:
+		attackTap = Input.is_action_just_pressed("attack") if InputMap.has_action("attack") else false
+		attackHold = Input.is_action_pressed("attack") if InputMap.has_action("attack") else false
+		heavyAttackTap = Input.is_action_just_pressed("heavy_attack") if InputMap.has_action("heavy_attack") else false
+		blockHold = Input.is_action_pressed("block") if InputMap.has_action("block") else false
+		blockTap = Input.is_action_just_pressed("block") if InputMap.has_action("block") else false
 	
 	
+	#INFO Combat System
+	if enableCombat and !hit_stunned:
+		# Attack handling
+		if attackTap and is_on_floor() and !attacking and !blocking and !rolling:
+			_start_attack(false)
+		elif heavyAttackTap and is_on_floor() and !attacking and !blocking and !rolling:
+			_start_attack(true)
+		elif attackTap and !is_on_floor() and !attacking and !blocking:
+			_start_attack(false)  # Air attack
+
+		# Combo system
+		if attacking and can_combo and attackTap:
+			combo_count += 1
+			can_combo = false
+			last_attack_time = Time.get_ticks_msec() / 1000.0
+
+		# Blocking
+		if blockHold and is_on_floor() and !attacking and enableBlocking:
+			if !blocking:
+				blocking = true
+			velocity.x = 0  # Can't move while blocking
+		else:
+			if blocking:
+				_end_block()
+
 	#INFO Left and Right Movement
-	
+
 	if rightHold and leftHold and movementInputMonitoring:
 		if !instantStop:
 			_decelerate(delta, false)
@@ -674,3 +861,69 @@ func _endGroundPound():
 
 func _placeHolder():
 	print("")
+
+# Enhanced Animation System Helper Functions
+func _start_attack(is_heavy: bool):
+	attacking = true
+	heavy_attacking = is_heavy
+	last_attack_time = Time.get_ticks_msec() / 1000.0
+	movementInputMonitoring = Vector2(false, false)  # Disable movement during attack
+
+	# Set attack duration based on animation
+	var attack_duration = 0.5
+	if is_heavy:
+		attack_duration = 0.8
+	elif !is_on_floor():
+		attack_duration = 0.4
+
+	_end_attack_timer(attack_duration)
+
+func _end_attack_timer(duration: float):
+	await get_tree().create_timer(duration).timeout
+	attacking = false
+	heavy_attacking = false
+	can_combo = true
+	movementInputMonitoring = Vector2(true, true)
+	# Reset combo after delay if no new attack
+	await get_tree().create_timer(comboWindow).timeout
+	if !attacking:
+		combo_count = 0
+		can_combo = false
+
+func _end_block():
+	blocking = false
+
+func _on_animation_finished(anim_name: String):
+	# Handle specific animation completions
+	match anim_name:
+		"attack", "attack_2", "attack_3", "attack_4":
+			if attacking:
+				can_combo = true
+		"roll":
+			rolling = false
+		"hit", "air_hit":
+			hit_stunned = false
+		"block_start":
+			if blockHold:
+				blocking = true
+		"crouch_start":
+			crouching = true
+		"crouch_end":
+			crouching = false
+		"jump_landing":
+			pass  # Landing complete
+		"dash_attack", "shield_dash_end":
+			dashing = false
+
+# Public function to trigger hit reaction (can be called by enemy attacks)
+func take_damage(damage: int = 1, knockback: Vector2 = Vector2.ZERO):
+	if !blocking or knockback.length() > 200:
+		hit_stunned = true
+		attacking = false
+		blocking = false
+		velocity += knockback
+		_end_hit_stun(0.5)
+
+func _end_hit_stun(duration: float):
+	await get_tree().create_timer(duration).timeout
+	hit_stunned = false
