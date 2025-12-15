@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://dexfqiwsy6kjg"]
+
+[ext_resource type="Script" uid="uid://c2vptgdd185pf" path="res://Ultimate 2D Platformer Controller v1.0.3/UltimatePlatformerController.gd" id="1_3qydi"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_q3lat"]
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_3qydi")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_q3lat")
