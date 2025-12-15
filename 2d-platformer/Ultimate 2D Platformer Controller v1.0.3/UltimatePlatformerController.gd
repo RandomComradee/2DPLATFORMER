@@ -287,6 +287,10 @@ func _process(delta):
 
 func _handle_legacy_animations():
 	# Keep original animation system for backwards compatibility
+	# Safety check: return if animation nodes aren't assigned
+	if anim == null:
+		return
+
 	#directions
 	if is_on_wall() and !is_on_floor() and wallLatching and ((wallLatchingModifer and latchHold) or !wallLatchingModifer):
 		latched = true
@@ -338,6 +342,9 @@ func _handle_legacy_animations():
 
 func _handle_enhanced_animations(_delta):
 	# Enhanced animation system using all 70 knight animations
+	# Safety check: return if animation nodes aren't assigned
+	if anim == null or anim.sprite_frames == null:
+		return
 
 	# Handle sprite direction
 	if rightHold and !latched and !blocking:
