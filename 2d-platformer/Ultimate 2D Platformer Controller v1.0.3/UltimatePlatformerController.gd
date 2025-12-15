@@ -215,18 +215,21 @@ func _ready():
 func _updateData():
 	acceleration = maxSpeed / timeToReachMaxSpeed
 	deceleration = -maxSpeed / timeToReachZeroSpeed
-	
+
 	jumpMagnitude = (10.0 * jumpHeight) * gravityScale
 	jumpCount = jumps
-	
+
 	dashMagnitude = maxSpeed * dashLength
 	dashCount = dashes
-	
+
 	maxSpeedLock = maxSpeed
-	
-	animScaleLock = abs(anim.scale)
-	colliderScaleLockY = col.scale.y
-	colliderPosLockY = col.position.y
+
+	# Only update animation/collider data if nodes are assigned
+	if anim != null:
+		animScaleLock = abs(anim.scale)
+	if col != null:
+		colliderScaleLockY = col.scale.y
+		colliderPosLockY = col.position.y
 	
 	if timeToReachMaxSpeed == 0:
 		instantAccel = true
@@ -333,7 +336,7 @@ func _handle_legacy_animations():
 		anim.speed_scale = 1
 		anim.play("roll")
 
-func _handle_enhanced_animations(delta):
+func _handle_enhanced_animations(_delta):
 	# Enhanced animation system using all 70 knight animations
 
 	# Handle sprite direction
@@ -349,33 +352,26 @@ func _handle_enhanced_animations(delta):
 
 	# Priority-based animation selection (highest priority wins)
 	var target_animation = "idle"
-	var target_priority = AnimPriority.IDLE
 	var speed_scale = 1.0
 
 	# HIT REACTIONS (Highest Priority)
 	if hit_stunned:
 		if is_on_floor():
 			target_animation = "hit"
-			target_priority = AnimPriority.HIT
 		else:
 			target_animation = "air_hit"
-			target_priority = AnimPriority.HIT
 
 	# BLOCKING
 	elif blocking and enableBlocking:
 		if blockTap:
 			target_animation = "block_start"
-			target_priority = AnimPriority.BLOCK
 		elif blockHold:
 			target_animation = "block_static"
-			target_priority = AnimPriority.BLOCK
 		else:
 			target_animation = "block_end"
-			target_priority = AnimPriority.BLOCK
 
 	# ATTACKING
 	elif attacking:
-		target_priority = AnimPriority.ATTACK
 		if heavy_attacking:
 			# Heavy attacks
 			if combo_count == 0:
@@ -406,7 +402,6 @@ func _handle_enhanced_animations(delta):
 	# ROLLING
 	elif rolling:
 		target_animation = "roll"
-		target_priority = AnimPriority.ROLL
 
 	# DASHING
 	elif dashing:
@@ -414,11 +409,9 @@ func _handle_enhanced_animations(delta):
 			target_animation = "shield_dash_loop_static"
 		else:
 			target_animation = "dash_attack"
-		target_priority = AnimPriority.DASH
 
 	# WALL INTERACTIONS
 	elif is_on_wall() and !is_on_floor():
-		target_priority = AnimPriority.WALL
 		if wallLatching and latched:
 			target_animation = "wall_slide_static"
 		elif velocity.y > 0:
@@ -431,7 +424,6 @@ func _handle_enhanced_animations(delta):
 
 	# JUMPING AND FALLING
 	elif !is_on_floor():
-		target_priority = AnimPriority.JUMP if velocity.y < 0 else AnimPriority.FALL
 		if velocity.y < -50:
 			target_animation = "jump_rise_loop"
 		elif velocity.y > 50:
@@ -441,7 +433,6 @@ func _handle_enhanced_animations(delta):
 
 	# CROUCHING
 	elif crouching:
-		target_priority = AnimPriority.CROUCH
 		if downTap:
 			target_animation = "crouch_start"
 		elif abs(velocity.x) > 10:
@@ -455,15 +446,12 @@ func _handle_enhanced_animations(delta):
 		if abs(velocity.x) > 10:
 			if abs(velocity.x) < maxSpeedLock * 0.5:
 				target_animation = "walk"
-				target_priority = AnimPriority.WALK
 				speed_scale = abs(velocity.x / 100)
 			else:
 				target_animation = "run"
-				target_priority = AnimPriority.RUN
 				speed_scale = abs(velocity.x / 150)
 		else:
 			target_animation = "idle"
-			target_priority = AnimPriority.IDLE
 
 	# Apply animation if it exists in the sprite frames
 	if anim.sprite_frames.has_animation(target_animation):
@@ -916,7 +904,7 @@ func _on_animation_finished(anim_name: String):
 			dashing = false
 
 # Public function to trigger hit reaction (can be called by enemy attacks)
-func take_damage(damage: int = 1, knockback: Vector2 = Vector2.ZERO):
+func take_damage(_damage: int = 1, knockback: Vector2 = Vector2.ZERO):
 	if !blocking or knockback.length() > 200:
 		hit_stunned = true
 		attacking = false
