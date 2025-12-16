@@ -1,127 +1,66 @@
 extends CharacterBody2D
 
-@export var README: String = "IMPORTANT: MAKE SURE TO ASSIGN 'left' 'right' 'jump' 'dash' 'up' 'down' 'roll' 'latch' 'twirl' 'run' 'attack' 'heavy_attack' 'block' in the project settings input map. Enhanced animation system with full knight moveset support."
-#INFO READEME
-#IMPORTANT: MAKE SURE TO ASSIGN 'left' 'right' 'jump' 'dash' 'up' 'down' 'roll' 'latch' 'twirl' 'run' 'attack' 'heavy_attack' 'block'  in the project settings input map. THIS IS REQUIRED
-#Usage tips.
-#1. Hover over each toggle and variable to read what it does and to make sure nothing bugs.
-#2. Enhanced animation system now supports all 70 knight animations with state-based priority system
-#3. Combat system includes: basic attacks, combo attacks, heavy attacks, blocking, parrying, and hit reactions
+@export var README: String = "IMPORTANT: MAKE SURE TO ASSIGN 'left' 'right' 'jump' 'dash' 'up' 'down' 'roll' 'latch' 'twirl' 'run' 'attack' 'heavy_attack' 'block' in the project settings input map."
 
 @export_category("Necesary Child Nodes")
 @export var PlayerSprite: AnimatedSprite2D
 @export var PlayerCollider: CollisionShape2D
 
-#INFO HORIZONTAL MOVEMENT 
 @export_category("L/R Movement")
-##The max speed your player will move
 @export_range(50, 500) var maxSpeed: float = 200.0
-##How fast your player will reach max speed from rest (in seconds)
 @export_range(0, 4) var timeToReachMaxSpeed: float = 0.2
-##How fast your player will reach zero speed from max speed (in seconds)
 @export_range(0, 4) var timeToReachZeroSpeed: float = 0.2
-##If true, player will instantly move and switch directions. Overrides the "timeToReach" variables, setting them to 0.
 @export var directionalSnap: bool = false
-##If enabled, the default movement speed will by 1/2 of the maxSpeed and the player must hold a "run" button to accelerate to max speed. Assign "run" (case sensitive) in the project input settings.
 @export var runningModifier: bool = false
 
-#INFO JUMPING 
 @export_category("Jumping and Gravity")
-##The peak height of your player's jump
 @export_range(0, 20) var jumpHeight: float = 2.0
-##How many jumps your character can do before needing to touch the ground again. Giving more than 1 jump disables jump buffering and coyote time.
 @export_range(0, 4) var jumps: int = 1
-##The strength at which your character will be pulled to the ground.
 @export_range(0, 100) var gravityScale: float = 20.0
-##The fastest your player can fall
 @export_range(0, 1000) var terminalVelocity: float = 500.0
-##Your player will move this amount faster when falling providing a less floaty jump curve.
 @export_range(0.5, 3) var descendingGravityFactor: float = 1.3
-##Enabling this toggle makes it so that when the player releases the jump key while still ascending, their vertical velocity will cut by the height cut, providing variable jump height.
 @export var shortHopAkaVariableJumpHeight: bool = true
-##How much the jump height is cut by.
 @export_range(1, 10) var jumpVariable: float = 2
-##How much extra time (in seconds) your player will be given to jump after falling off an edge. This is set to 0.2 seconds by default.
 @export_range(0, 0.5) var coyoteTime: float = 0.2
-##The window of time (in seconds) that your player can press the jump button before hitting the ground and still have their input registered as a jump. This is set to 0.2 seconds by default.
 @export_range(0, 0.5) var jumpBuffering: float = 0.2
 
-#INFO EXTRAS
 @export_category("Wall Jumping")
-##Allows your player to jump off of walls. Without a Wall Kick Angle, the player will be able to scale the wall.
 @export var wallJump: bool = false
-##How long the player's movement input will be ignored after wall jumping.
 @export_range(0, 0.5) var inputPauseAfterWallJump: float = 0.1
-##The angle at which your player will jump away from the wall. 0 is straight away from the wall, 90 is straight up. Does not account for gravity
 @export_range(0, 90) var wallKickAngle: float = 60.0
-##The player's gravity will be divided by this number when touch a wall and descending. Set to 1 by default meaning no change will be made to the gravity and there is effectively no wall sliding. THIS IS OVERRIDDED BY WALL LATCH.
 @export_range(1, 20) var wallSliding: float = 1.0
-##If enabled, the player's gravity will be set to 0 when touching a wall and descending. THIS WILL OVERRIDE WALLSLIDING.
 @export var wallLatching: bool = false
-##wall latching must be enabled for this to work. #If enabled, the player must hold down the "latch" key to wall latch. Assign "latch" in the project input settings. The player's input will be ignored when latching.
 @export var wallLatchingModifer: bool = false
+
 @export_category("Dashing")
-##The type of dashes the player can do.
 @export_enum("None", "Horizontal", "Vertical", "Four Way", "Eight Way") var dashType: int
-##How many dashes your player can do before needing to hit the ground.
 @export_range(0, 10) var dashes: int = 1
-##If enabled, pressing the opposite direction of a dash, during a dash, will zero the player's velocity.
 @export var dashCancel: bool = true
-##How far the player will dash. One of the dashing toggles must be on for this to be used.
 @export_range(1.5, 4) var dashLength: float = 2.5
+
 @export_category("Corner Cutting/Jump Correct")
-##If the player's head is blocked by a jump but only by a little, the player will be nudged in the right direction and their jump will execute as intended. NEEDS RAYCASTS TO BE ATTACHED TO THE PLAYER NODE. AND ASSIGNED TO MOUNTING RAYCAST. DISTANCE OF MOUNTING DETERMINED BY PLACEMENT OF RAYCAST.
 @export var cornerCutting: bool = false
-##How many pixels the player will be pushed (per frame) if corner cutting is needed to correct a jump.
 @export_range(1, 5) var correctionAmount: float = 1.5
-##Raycast used for corner cutting calculations. Place above and to the left of the players head point up. ALL ARE NEEDED FOR IT TO WORK.
 @export var leftRaycast: RayCast2D
-##Raycast used for corner cutting calculations. Place above of the players head point up. ALL ARE NEEDED FOR IT TO WORK.
 @export var middleRaycast: RayCast2D
-##Raycast used for corner cutting calculations. Place above and to the right of the players head point up. ALL ARE NEEDED FOR IT TO WORK.
 @export var rightRaycast: RayCast2D
+
 @export_category("Down Input")
-##Holding down will crouch the player. Crouching script may need to be changed depending on how your player's size proportions are. It is built for 32x player's sprites.
 @export var crouch: bool = false
-##Holding down and pressing the input for "roll" will execute a roll if the player is grounded. Assign a "roll" input in project settings input.
 @export var canRoll: bool
 @export_range(1.25, 2) var rollLength: float = 2
-##If enabled, the player will stop all horizontal movement midair, wait (groundPoundPause) seconds, and then slam down into the ground when down is pressed. 
 @export var groundPound: bool
-##The amount of time the player will hover in the air before completing a ground pound (in seconds)
 @export_range(0.05, 0.75) var groundPoundPause: float = 0.25
-##If enabled, pressing up will end the ground pound early
 @export var upToCancel: bool = false
 
-@export_category("Combat System")
-##Enable the combat system with attacks, blocking, and hit reactions
-@export var enableCombat: bool = true
-##Time window for combo attacks (in seconds)
-@export_range(0.1, 1.0) var comboWindow: float = 0.5
-##Enable blocking and parrying
-@export var enableBlocking: bool = true
-
-@export_category("Enhanced Animations")
-##Enable the enhanced animation system (uses all 70 knight animations automatically)
-@export var useEnhancedAnimations: bool = true
-##Use the new dedicated animation controller for better transitions (recommended)
-@export var useAnimationController: bool = true
-##Reference to the animation controller node (auto-created if not assigned)
-@export var animationController: PlayerAnimationController
-
-
-
-#Variables determined by the developer set ones.
+# Internal variables
 var appliedGravity: float
 var maxSpeedLock: float
 var appliedTerminalVelocity: float
-
-var friction: float
 var acceleration: float
 var deceleration: float
 var instantAccel: bool = false
 var instantStop: bool = false
-
 var jumpMagnitude: float = 500.0
 var jumpCount: int
 var jumpWasPressed: bool = false
@@ -131,383 +70,278 @@ var gravityActive: bool = true
 var dashing: bool = false
 var dashCount: int
 var rolling: bool = false
-
-var twoWayDashHorizontal
-var twoWayDashVertical
-var eightWayDash
-
-var wasMovingR: bool
-var wasPressingR: bool
-var movementInputMonitoring: Vector2 = Vector2(true, true) #movementInputMonitoring.x addresses right direction while .y addresses left direction
-
+var twoWayDashHorizontal: bool = false
+var twoWayDashVertical: bool = false
+var eightWayDash: bool = false
+var wasMovingR: bool = true
+var wasPressingR: bool = true
+var movementInputMonitoring: Vector2 = Vector2(true, true)
 var gdelta: float = 1
+var dset: bool = false
+var colliderScaleLockY: float
+var colliderPosLockY: float
+var latched: bool = false
+var wasLatched: bool = false
+var crouching: bool = false
+var groundPounding: bool = false
+var anim: AnimatedSprite2D
+var col: CollisionShape2D
+var animScaleLock: Vector2
 
-var dset = false
+# Animation state tracking
+var _was_on_floor: bool = true
+var _was_on_wall: bool = false
+var _was_at_max_speed: bool = false
+var _was_moving: bool = false
+var _was_crouching: bool = false
+var _prev_velocity_x: float = 0.0
+var _playing_one_shot: bool = false
+var _current_one_shot: String = ""
 
-var colliderScaleLockY
-var colliderPosLockY
-
-var latched
-var wasLatched
-var crouching
-var groundPounding
-
-var anim
-var col
-var animScaleLock : Vector2
-
-# Combat and animation state variables
-var attacking: bool = false
-var blocking: bool = false
-var hit_stunned: bool = false
-var combo_count: int = 0
-var can_combo: bool = false
-var last_attack_time: float = 0.0
-var current_animation_priority: int = 0
-var edge_grabbing: bool = false
-var ladder_climbing: bool = false
-var heavy_attacking: bool = false
-
-# Animation priority levels (higher = more important)
-enum AnimPriority {
-	IDLE = 0,
-	WALK = 1,
-	RUN = 2,
-	CROUCH = 3,
-	JUMP = 4,
-	FALL = 5,
-	DASH = 6,
-	WALL = 7,
-	ROLL = 8,
-	ATTACK = 9,
-	BLOCK = 10,
-	HIT = 11
-}
-
-#Input Variables for the whole script
-var upHold
-var downHold
-var leftHold
-var leftTap
-var leftRelease
-var rightHold
-var rightTap
-var rightRelease
-var jumpTap
-var jumpRelease
-var runHold
-var latchHold
-var dashTap
-var rollTap
-var downTap
-var twirlTap
-var attackTap
-var attackHold
-var heavyAttackTap
-var blockHold
-var blockTap
+# Input variables
+var upHold: bool = false
+var downHold: bool = false
+var leftHold: bool = false
+var leftTap: bool = false
+var leftRelease: bool = false
+var rightHold: bool = false
+var rightTap: bool = false
+var rightRelease: bool = false
+var jumpTap: bool = false
+var jumpRelease: bool = false
+var runHold: bool = false
+var latchHold: bool = false
+var dashTap: bool = false
+var rollTap: bool = false
+var downTap: bool = false
+var twirlTap: bool = false
 
 func _ready():
-	wasMovingR = true
 	anim = PlayerSprite
 	col = PlayerCollider
-
 	_updateData()
-	_setup_animation_controller()
-	
-func _setup_animation_controller():
-	if !useAnimationController:
-		return
-
-	# If no animation controller assigned, create one
-	if animationController == null:
-		animationController = PlayerAnimationController.new()
-		animationController.name = "AnimationController"
-		add_child(animationController)
-
-	# Configure the animation controller
-	animationController.controller = self
-	animationController.sprite = anim
-	animationController._max_speed = maxSpeedLock
-	animationController._wall_sliding = wallSliding
-	animationController._anim_scale_lock = animScaleLock
+	if anim:
+		anim.animation_finished.connect(_on_anim_finished)
 
 func _updateData():
 	acceleration = maxSpeed / timeToReachMaxSpeed
 	deceleration = -maxSpeed / timeToReachZeroSpeed
-	
 	jumpMagnitude = (10.0 * jumpHeight) * gravityScale
 	jumpCount = jumps
-	
 	dashMagnitude = maxSpeed * dashLength
 	dashCount = dashes
-	
 	maxSpeedLock = maxSpeed
-	
 	animScaleLock = abs(anim.scale)
 	colliderScaleLockY = col.scale.y
 	colliderPosLockY = col.position.y
-	
+
 	if timeToReachMaxSpeed == 0:
 		instantAccel = true
 		timeToReachMaxSpeed = 1
-	elif timeToReachMaxSpeed < 0:
-		timeToReachMaxSpeed = abs(timeToReachMaxSpeed)
-		instantAccel = false
 	else:
 		instantAccel = false
-		
+
 	if timeToReachZeroSpeed == 0:
 		instantStop = true
 		timeToReachZeroSpeed = 1
-	elif timeToReachMaxSpeed < 0:
-		timeToReachMaxSpeed = abs(timeToReachMaxSpeed)
-		instantStop = false
 	else:
 		instantStop = false
-		
+
 	if jumps > 1:
 		jumpBuffering = 0
 		coyoteTime = 0
-	
-	coyoteTime = abs(coyoteTime)
-	jumpBuffering = abs(jumpBuffering)
-	
+
 	if directionalSnap:
 		instantAccel = true
 		instantStop = true
-	
-	
-	twoWayDashHorizontal = false
-	twoWayDashVertical = false
-	eightWayDash = false
-	if dashType == 0:
-		pass
-	if dashType == 1:
-		twoWayDashHorizontal = true
-	elif dashType == 2:
-		twoWayDashVertical = true
-	elif dashType == 3:
-		twoWayDashHorizontal = true
-		twoWayDashVertical = true
-	elif dashType == 4:
-		eightWayDash = true
-	
-	
 
-func _process(delta):
-	#INFO Enhanced Animation System
-	# If using the new animation controller, it handles movement animations automatically
-	if useAnimationController and animationController != null:
-		# Animation controller handles its own _process for movement
-		# Only run legacy/enhanced for combat animations that controller skips
-		pass
-	elif useEnhancedAnimations:
-		_handle_enhanced_animations(delta)
-	else:
-		_handle_legacy_animations()
+	twoWayDashHorizontal = dashType == 1 or dashType == 3
+	twoWayDashVertical = dashType == 2 or dashType == 3
+	eightWayDash = dashType == 4
 
-func _handle_legacy_animations():
-	# Keep original animation system for backwards compatibility
-	#directions
+func _process(_delta):
+	_handle_animations()
+
+func _handle_animations():
+	if !anim:
+		return
+
+	# Update latched state
 	if is_on_wall() and !is_on_floor() and wallLatching and ((wallLatchingModifer and latchHold) or !wallLatchingModifer):
 		latched = true
 	else:
 		latched = false
-		wasLatched = true
-		_setLatch(0.2, false)
 
+	# Sprite direction
 	if rightHold and !latched:
 		anim.scale.x = animScaleLock.x
 	if leftHold and !latched:
-		anim.scale.x = animScaleLock.x * -1
+		anim.scale.x = -animScaleLock.x
 
-	# Basic movement animations
-	if abs(velocity.x) > 0.1 and is_on_floor() and !is_on_wall() and !dashing and !crouching:
-		anim.speed_scale = abs(velocity.x / 150)
-		anim.play("run")
-	elif abs(velocity.x) < 0.1 and is_on_floor() and !dashing and !crouching:
-		anim.speed_scale = 1
-		anim.play("idle")
+	# State calculations
+	var is_moving = abs(velocity.x) > 10.0
+	var is_at_max_speed = abs(velocity.x) >= maxSpeedLock * 0.85
+	var is_falling = velocity.y > 50.0
+	var is_rising = velocity.y < -50.0
+	var is_transition = !is_falling and !is_rising and !is_on_floor()
+	var velocity_flipped = abs(_prev_velocity_x) > 10.0 and abs(velocity.x) > 10.0 and sign(_prev_velocity_x) != sign(velocity.x)
 
-	if velocity.y < 0 and !dashing:
-		anim.speed_scale = 1
-		anim.play("jump_rise_loop")
+	# If playing one-shot, wait for it to finish
+	if _playing_one_shot:
+		_update_prev_state(is_moving, is_at_max_speed)
+		return
 
-	if velocity.y > 40 and !dashing and !crouching:
-		anim.speed_scale = 1
-		anim.play("jump_fall_loop")
+	# Determine animation
+	var target_anim: String = "idle"
+	var one_shot: bool = false
+	var spd: float = 1.0
 
-	if is_on_wall() and velocity.y > 0 and wallSliding != 1:
-		anim.speed_scale = 1
-		anim.play("wall_slide_loop")
-
-	if dashing:
-		anim.speed_scale = 1
-		anim.play("dash_attack")
-
-	if crouching and !rolling:
-		if abs(velocity.x) > 10:
-			anim.speed_scale = 1
-			anim.play("crouch_walk")
-		else:
-			anim.speed_scale = 1
-			anim.play("crouch_idle")
-
+	# ROLLING (highest priority for movement)
 	if rolling:
-		anim.speed_scale = 1
-		anim.play("roll")
-
-func _handle_enhanced_animations(delta):
-	# Enhanced animation system using all 70 knight animations
-
-	# Handle sprite direction
-	if rightHold and !latched and !blocking:
-		anim.scale.x = animScaleLock.x
-	if leftHold and !latched and !blocking:
-		anim.scale.x = animScaleLock.x * -1
-
-	# Update combo timer
-	if can_combo and (Time.get_ticks_msec() / 1000.0) - last_attack_time > comboWindow:
-		can_combo = false
-		combo_count = 0
-
-	# Priority-based animation selection (highest priority wins)
-	var target_animation = "idle"
-	var target_priority = AnimPriority.IDLE
-	var speed_scale = 1.0
-
-	# HIT REACTIONS (Highest Priority)
-	if hit_stunned:
-		if is_on_floor():
-			target_animation = "hit"
-			target_priority = AnimPriority.HIT
-		else:
-			target_animation = "air_hit"
-			target_priority = AnimPriority.HIT
-
-	# BLOCKING
-	elif blocking and enableBlocking:
-		if blockTap:
-			target_animation = "block_start"
-			target_priority = AnimPriority.BLOCK
-		elif blockHold:
-			target_animation = "block_static"
-			target_priority = AnimPriority.BLOCK
-		else:
-			target_animation = "block_end"
-			target_priority = AnimPriority.BLOCK
-
-	# ATTACKING
-	elif attacking:
-		target_priority = AnimPriority.ATTACK
-		if heavy_attacking:
-			# Heavy attacks
-			if combo_count == 0:
-				target_animation = "heavyattack_1_start"
-			elif combo_count == 1:
-				target_animation = "heavyattack_1_charge_2"
-			else:
-				target_animation = "heavyattack_1_end"
-		elif !is_on_floor():
-			# Air attacks
-			if velocity.y < 0:
-				target_animation = "jump_up_attack"
-			else:
-				target_animation = "jump_down_attack"
-		elif crouching:
-			target_animation = "crouch_attack"
-		else:
-			# Ground combo attacks
-			if combo_count == 0:
-				target_animation = "attack"
-			elif combo_count == 1:
-				target_animation = "attack_2"
-			elif combo_count == 2:
-				target_animation = "attack_3"
-			else:
-				target_animation = "attack_4"
-
-	# ROLLING
-	elif rolling:
-		target_animation = "roll"
-		target_priority = AnimPriority.ROLL
+		target_anim = "roll"
 
 	# DASHING
 	elif dashing:
-		if blockHold:
-			target_animation = "shield_dash_loop_static"
+		target_anim = "dash_attack"
+
+	# WALL SLIDE
+	elif is_on_wall() and !is_on_floor() and wallSliding != 1.0:
+		if !_was_on_wall:
+			target_anim = "wall_slide_contact"
+			one_shot = true
 		else:
-			target_animation = "dash_attack"
-		target_priority = AnimPriority.DASH
+			target_anim = "wall_slide_loop"
 
-	# WALL INTERACTIONS
-	elif is_on_wall() and !is_on_floor():
-		target_priority = AnimPriority.WALL
-		if wallLatching and latched:
-			target_animation = "wall_slide_static"
-		elif velocity.y > 0:
-			if wallSliding != 1:
-				target_animation = "wall_slide_loop"
-			else:
-				target_animation = "wall_slide_contact"
-		elif velocity.y < 0:
-			target_animation = "wall_jump_loop"
+	# LANDING (just hit floor)
+	elif is_on_floor() and !_was_on_floor:
+		if (rightHold or leftHold) and is_moving:
+			target_anim = "jumptorun"
+			one_shot = true
+		else:
+			target_anim = "jump_landing"
+			one_shot = true
 
-	# JUMPING AND FALLING
+	# AIRBORNE
 	elif !is_on_floor():
-		target_priority = AnimPriority.JUMP if velocity.y < 0 else AnimPriority.FALL
-		if velocity.y < -50:
-			target_animation = "jump_rise_loop"
-		elif velocity.y > 50:
-			target_animation = "jump_fall_loop"
+		if is_rising:
+			target_anim = "jump_rise_loop"
+		elif is_transition:
+			target_anim = "jump_transition"
+			one_shot = true
 		else:
-			target_animation = "jump_transition"
+			target_anim = "jump_fall_loop"
 
 	# CROUCHING
 	elif crouching:
-		target_priority = AnimPriority.CROUCH
-		if downTap:
-			target_animation = "crouch_start"
-		elif abs(velocity.x) > 10:
-			target_animation = "crouch_walk"
-			speed_scale = abs(velocity.x / 100)
+		if !_was_crouching:
+			target_anim = "crouch_start"
+			one_shot = true
+		elif is_moving:
+			target_anim = "crouch_walk"
+			spd = clamp(abs(velocity.x) / 80.0, 0.5, 1.2)
 		else:
-			target_animation = "crouch_idle"
+			target_anim = "crouch_idle"
+
+	# CROUCH END
+	elif _was_crouching and !crouching:
+		target_anim = "crouch_end"
+		one_shot = true
 
 	# GROUND MOVEMENT
 	elif is_on_floor():
-		if abs(velocity.x) > 10:
-			if abs(velocity.x) < maxSpeedLock * 0.5:
-				target_animation = "walk"
-				target_priority = AnimPriority.WALK
-				speed_scale = abs(velocity.x / 100)
-			else:
-				target_animation = "run"
-				target_priority = AnimPriority.RUN
-				speed_scale = abs(velocity.x / 150)
+		# Turn around from run
+		if _was_at_max_speed and velocity_flipped:
+			target_anim = "run_end"
+			one_shot = true
+		# Just reached max speed
+		elif is_at_max_speed and !_was_at_max_speed and _was_moving:
+			target_anim = "run_start"
+			one_shot = true
+		# Stopped from running
+		elif !is_moving and _was_moving and _was_at_max_speed:
+			target_anim = "run_end"
+			one_shot = true
+		# Running
+		elif is_at_max_speed:
+			target_anim = "run"
+			spd = clamp(abs(velocity.x) / 150.0, 0.8, 1.5)
+		# Walking
+		elif is_moving:
+			target_anim = "walk"
+			spd = clamp(abs(velocity.x) / 100.0, 0.5, 1.5)
+		# Idle
 		else:
-			target_animation = "idle"
-			target_priority = AnimPriority.IDLE
+			target_anim = "idle"
 
-	# Apply animation if it exists in the sprite frames
-	if anim.sprite_frames.has_animation(target_animation):
-		if anim.animation != target_animation:
-			anim.play(target_animation)
-		anim.speed_scale = speed_scale
+	# Play animation
+	_play_anim(target_anim, one_shot, spd)
 
-	# Handle animation end events for attacks and other timed actions
-	if !anim.is_playing() or (anim.is_playing() and anim.frame >= anim.sprite_frames.get_frame_count(anim.animation) - 1):
-		_on_animation_finished(anim.animation)
-		
-		
-		
+	# Update previous state
+	_update_prev_state(is_moving, is_at_max_speed)
+
+func _play_anim(anim_name: String, one_shot: bool, spd: float):
+	# Check if animation exists, use fallback if not
+	if !anim.sprite_frames.has_animation(anim_name):
+		anim_name = _get_fallback(anim_name)
+		if !anim.sprite_frames.has_animation(anim_name):
+			return
+
+	if one_shot:
+		_playing_one_shot = true
+		_current_one_shot = anim_name
+
+	if anim.animation != anim_name:
+		anim.play(anim_name)
+	anim.speed_scale = spd
+
+func _get_fallback(name: String) -> String:
+	match name:
+		"run_start", "run_end": return "run"
+		"crouch_start", "crouch_end": return "crouch_idle"
+		"jump_transition": return "jump_fall_loop"
+		"jump_landing", "jumptorun": return "idle"
+		"wall_slide_contact": return "wall_slide_loop"
+		"walk": return "run"
+	return "idle"
+
+func _on_anim_finished():
+	if !_playing_one_shot:
+		return
+
+	_playing_one_shot = false
+
+	match _current_one_shot:
+		"run_start":
+			anim.play("run")
+		"run_end":
+			anim.play("idle")
+		"crouch_start":
+			anim.play("crouch_idle")
+		"crouch_end":
+			anim.play("idle")
+		"jump_transition":
+			anim.play("jump_fall_loop")
+		"jump_landing":
+			anim.play("idle")
+		"jumptorun":
+			anim.play("run")
+		"wall_slide_contact":
+			anim.play("wall_slide_loop")
+
+func _update_prev_state(is_moving: bool, is_at_max: bool):
+	_was_on_floor = is_on_floor()
+	_was_on_wall = is_on_wall()
+	_was_at_max_speed = is_at_max
+	_was_moving = is_moving
+	_was_crouching = crouching
+	_prev_velocity_x = velocity.x
 
 func _physics_process(delta):
 	if !dset:
 		gdelta = delta
 		dset = true
-	#INFO Input Detectio. Define your inputs from the project settings here.
+
+	# Input Detection
 	leftHold = Input.is_action_pressed("left")
 	rightHold = Input.is_action_pressed("right")
 	upHold = Input.is_action_pressed("up")
@@ -525,42 +359,7 @@ func _physics_process(delta):
 	downTap = Input.is_action_just_pressed("down")
 	twirlTap = Input.is_action_just_pressed("twirl")
 
-	# Combat inputs (check if actions exist before querying)
-	if enableCombat:
-		attackTap = Input.is_action_just_pressed("attack") if InputMap.has_action("attack") else false
-		attackHold = Input.is_action_pressed("attack") if InputMap.has_action("attack") else false
-		heavyAttackTap = Input.is_action_just_pressed("heavy_attack") if InputMap.has_action("heavy_attack") else false
-		blockHold = Input.is_action_pressed("block") if InputMap.has_action("block") else false
-		blockTap = Input.is_action_just_pressed("block") if InputMap.has_action("block") else false
-	
-	
-	#INFO Combat System
-	if enableCombat and !hit_stunned:
-		# Attack handling
-		if attackTap and is_on_floor() and !attacking and !blocking and !rolling:
-			_start_attack(false)
-		elif heavyAttackTap and is_on_floor() and !attacking and !blocking and !rolling:
-			_start_attack(true)
-		elif attackTap and !is_on_floor() and !attacking and !blocking:
-			_start_attack(false)  # Air attack
-
-		# Combo system
-		if attacking and can_combo and attackTap:
-			combo_count += 1
-			can_combo = false
-			last_attack_time = Time.get_ticks_msec() / 1000.0
-
-		# Blocking
-		if blockHold and is_on_floor() and !attacking and enableBlocking:
-			if !blocking:
-				blocking = true
-			velocity.x = 0  # Can't move while blocking
-		else:
-			if blocking:
-				_end_block()
-
-	#INFO Left and Right Movement
-
+	# Left and Right Movement
 	if rightHold and leftHold and movementInputMonitoring:
 		if !instantStop:
 			_decelerate(delta, false)
@@ -586,38 +385,38 @@ func _physics_process(delta):
 				_decelerate(delta, false)
 			else:
 				velocity.x = 0.1
-				
+
 	if velocity.x > 0:
 		wasMovingR = true
 	elif velocity.x < 0:
 		wasMovingR = false
-		
+
 	if rightTap:
 		wasPressingR = true
 	if leftTap:
 		wasPressingR = false
-	
+
 	if runningModifier and !runHold:
 		maxSpeed = maxSpeedLock / 2
-	elif is_on_floor(): 
+	elif is_on_floor():
 		maxSpeed = maxSpeedLock
-	
+
 	if !(leftHold or rightHold):
 		if !instantStop:
 			_decelerate(delta, false)
 		else:
 			velocity.x = 0
-			
-	#INFO Crouching
+
+	# Crouching
 	if crouch:
 		if downHold and is_on_floor():
 			crouching = true
 		elif !downHold and !rolling:
 			crouching = false
-			
+
 	if !is_on_floor():
 		crouching = false
-			
+
 	if crouching:
 		maxSpeed = maxSpeedLock / 2
 		col.scale.y = colliderScaleLockY / 2
@@ -626,66 +425,59 @@ func _physics_process(delta):
 		maxSpeed = maxSpeedLock
 		col.scale.y = colliderScaleLockY
 		col.position.y = colliderPosLockY
-		
-	#INFO Rolling
+
+	# Rolling
 	if canRoll and is_on_floor() and rollTap and crouching:
 		_rollingTime(rollLength * 0.25)
-		if wasPressingR and !(upHold):
+		if wasPressingR and !upHold:
 			velocity.y = 0
 			velocity.x = maxSpeedLock * rollLength
-			dashCount += -1
+			dashCount -= 1
 			movementInputMonitoring = Vector2(false, false)
 			_inputPauseReset(rollLength * 0.0625)
-		elif !(upHold):
+		elif !upHold:
 			velocity.y = 0
 			velocity.x = -maxSpeedLock * rollLength
-			dashCount += -1
+			dashCount -= 1
 			movementInputMonitoring = Vector2(false, false)
 			_inputPauseReset(rollLength * 0.0625)
-		
-	if canRoll and rolling:
-		#if you want your player to become immune or do something else while rolling, add that here.
-		pass
-			
-	#INFO Jump and Gravity
+
+	# Jump and Gravity
 	if velocity.y > 0:
 		appliedGravity = gravityScale * descendingGravityFactor
 	else:
 		appliedGravity = gravityScale
-	
+
 	if is_on_wall() and !groundPounding:
 		appliedTerminalVelocity = terminalVelocity / wallSliding
 		if wallLatching and ((wallLatchingModifer and latchHold) or !wallLatchingModifer):
 			appliedGravity = 0
-			
 			if velocity.y < 0:
 				velocity.y += 50
 			if velocity.y > 0:
 				velocity.y = 0
-				
 			if wallLatchingModifer and latchHold and movementInputMonitoring == Vector2(true, true):
 				velocity.x = 0
-			
 		elif wallSliding != 1 and velocity.y > 0:
 			appliedGravity = appliedGravity / wallSliding
 	elif !is_on_wall() and !groundPounding:
 		appliedTerminalVelocity = terminalVelocity
-	
+
 	if gravityActive:
 		if velocity.y < appliedTerminalVelocity:
 			velocity.y += appliedGravity
 		elif velocity.y > appliedTerminalVelocity:
-				velocity.y = appliedTerminalVelocity
-		
+			velocity.y = appliedTerminalVelocity
+
 	if shortHopAkaVariableJumpHeight and jumpRelease and velocity.y < 0:
 		velocity.y = velocity.y / jumpVariable
-	
+
 	if jumps == 1:
 		if !is_on_floor() and !is_on_wall():
 			if coyoteTime > 0:
 				coyoteActive = true
 				_coyoteTime()
-				
+
 		if jumpTap and !is_on_wall():
 			if coyoteActive:
 				coyoteActive = false
@@ -696,13 +488,11 @@ func _physics_process(delta):
 			elif jumpBuffering == 0 and coyoteTime == 0 and is_on_floor():
 				_jump()
 		elif jumpTap and is_on_wall() and !is_on_floor():
-			if wallJump and !latched:
-				_wallJump()
-			elif wallJump and latched:
+			if wallJump:
 				_wallJump()
 		elif jumpTap and is_on_floor():
 			_jump()
-			
+
 		if is_on_floor():
 			jumpCount = jumps
 			if coyoteTime > 0:
@@ -719,11 +509,10 @@ func _physics_process(delta):
 			_wallJump()
 		elif jumpTap and jumpCount > 0:
 			velocity.y = -jumpMagnitude
-			jumpCount = jumpCount - 1
+			jumpCount -= 1
 			_endGroundPound()
-			
-			
-	#INFO dashing
+
+	# Dashing
 	if is_on_floor():
 		dashCount = dashes
 	if eightWayDash and dashTap and dashCount > 0 and !rolling:
@@ -732,67 +521,55 @@ func _physics_process(delta):
 		_dashingTime(dTime)
 		_pauseGravity(dTime)
 		velocity = dashMagnitude * input_direction
-		if (!rightHold and !leftHold and !downHold and !upHold) and wasMovingR:
-			velocity.x = dashMagnitude
-		elif (!rightHold and !leftHold and !downHold and !upHold) and !wasMovingR:
-			velocity.x = -dashMagnitude
-		dashCount += -1
+		if !rightHold and !leftHold and !downHold and !upHold:
+			velocity.x = dashMagnitude if wasMovingR else -dashMagnitude
+		dashCount -= 1
 		movementInputMonitoring = Vector2(false, false)
 		_inputPauseReset(dTime)
-	
+
 	if twoWayDashVertical and dashTap and dashCount > 0 and !rolling:
 		var dTime = 0.0625 * dashLength
-		if upHold and downHold:
-			_placeHolder()
-		elif upHold:
+		if upHold and !downHold:
 			_dashingTime(dTime)
 			_pauseGravity(dTime)
 			velocity.x = 0
 			velocity.y = -dashMagnitude
-			dashCount += -1
+			dashCount -= 1
 			movementInputMonitoring = Vector2(false, false)
 			_inputPauseReset(dTime)
-		elif downHold and dashCount > 0:
+		elif downHold and !upHold:
 			_dashingTime(dTime)
 			_pauseGravity(dTime)
 			velocity.x = 0
 			velocity.y = dashMagnitude
-			dashCount += -1
+			dashCount -= 1
 			movementInputMonitoring = Vector2(false, false)
 			_inputPauseReset(dTime)
-	
+
 	if twoWayDashHorizontal and dashTap and dashCount > 0 and !rolling:
 		var dTime = 0.0625 * dashLength
-		if wasPressingR and !(upHold or downHold):
+		if !upHold and !downHold:
 			velocity.y = 0
-			velocity.x = dashMagnitude
+			velocity.x = dashMagnitude if wasPressingR else -dashMagnitude
 			_pauseGravity(dTime)
 			_dashingTime(dTime)
-			dashCount += -1
+			dashCount -= 1
 			movementInputMonitoring = Vector2(false, false)
 			_inputPauseReset(dTime)
-		elif !(upHold or downHold):
-			velocity.y = 0
-			velocity.x = -dashMagnitude
-			_pauseGravity(dTime)
-			_dashingTime(dTime)
-			dashCount += -1
-			movementInputMonitoring = Vector2(false, false)
-			_inputPauseReset(dTime)
-			
+
 	if dashing and velocity.x > 0 and leftTap and dashCancel:
 		velocity.x = 0
 	if dashing and velocity.x < 0 and rightTap and dashCancel:
 		velocity.x = 0
-	
-	#INFO Corner Cutting
+
+	# Corner Cutting
 	if cornerCutting:
 		if velocity.y < 0 and leftRaycast.is_colliding() and !rightRaycast.is_colliding() and !middleRaycast.is_colliding():
 			position.x += correctionAmount
 		if velocity.y < 0 and !leftRaycast.is_colliding() and rightRaycast.is_colliding() and !middleRaycast.is_colliding():
 			position.x -= correctionAmount
-			
-	#INFO Ground Pound
+
+	# Ground Pound
 	if groundPound and downTap and !is_on_floor() and !is_on_wall():
 		groundPounding = true
 		gravityActive = false
@@ -801,11 +578,12 @@ func _physics_process(delta):
 		_groundPound()
 	if is_on_floor() and groundPounding:
 		_endGroundPound()
+
 	move_and_slide()
-	
+
 	if upToCancel and upHold and groundPound:
 		_endGroundPound()
-	
+
 func _bufferJump():
 	await get_tree().create_timer(jumpBuffering).timeout
 	jumpWasPressed = false
@@ -813,50 +591,38 @@ func _bufferJump():
 func _coyoteTime():
 	await get_tree().create_timer(coyoteTime).timeout
 	coyoteActive = false
-	jumpCount += -1
+	jumpCount -= 1
 
-	
 func _jump():
 	if jumpCount > 0:
 		velocity.y = -jumpMagnitude
-		jumpCount += -1
+		jumpCount -= 1
 		jumpWasPressed = false
-		
+
 func _wallJump():
 	var horizontalWallKick = abs(jumpMagnitude * cos(wallKickAngle * (PI / 180)))
 	var verticalWallKick = abs(jumpMagnitude * sin(wallKickAngle * (PI / 180)))
 	velocity.y = -verticalWallKick
-	var dir = 1
-	if wallLatchingModifer and latchHold:
-		dir = -1
-	if wasMovingR:
-		velocity.x = -horizontalWallKick  * dir
-	else:
-		velocity.x = horizontalWallKick * dir
+	var dir = -1 if (wallLatchingModifer and latchHold) else 1
+	velocity.x = -horizontalWallKick * dir if wasMovingR else horizontalWallKick * dir
 	if inputPauseAfterWallJump != 0:
 		movementInputMonitoring = Vector2(false, false)
 		_inputPauseReset(inputPauseAfterWallJump)
-			
-func _setLatch(delay, setBool):
-	await get_tree().create_timer(delay).timeout
-	wasLatched = setBool
-			
+
 func _inputPauseReset(time):
 	await get_tree().create_timer(time).timeout
 	movementInputMonitoring = Vector2(true, true)
-	
 
 func _decelerate(delta, vertical):
 	if !vertical:
-		if (abs(velocity.x) > 0) and (abs(velocity.x) <= abs(deceleration * delta)):
-			velocity.x = 0 
+		if abs(velocity.x) > 0 and abs(velocity.x) <= abs(deceleration * delta):
+			velocity.x = 0
 		elif velocity.x > 0:
 			velocity.x += deceleration * delta
 		elif velocity.x < 0:
 			velocity.x -= deceleration * delta
 	elif vertical and velocity.y > 0:
 		velocity.y += deceleration * delta
-
 
 func _pauseGravity(time):
 	gravityActive = false
@@ -873,82 +639,13 @@ func _dashingTime(time):
 func _rollingTime(time):
 	rolling = true
 	await get_tree().create_timer(time).timeout
-	rolling = false	
+	rolling = false
 
 func _groundPound():
 	appliedTerminalVelocity = terminalVelocity * 10
 	velocity.y = jumpMagnitude * 2
-	
+
 func _endGroundPound():
 	groundPounding = false
 	appliedTerminalVelocity = terminalVelocity
 	gravityActive = true
-
-func _placeHolder():
-	print("")
-
-# Enhanced Animation System Helper Functions
-func _start_attack(is_heavy: bool):
-	attacking = true
-	heavy_attacking = is_heavy
-	last_attack_time = Time.get_ticks_msec() / 1000.0
-	movementInputMonitoring = Vector2(false, false)  # Disable movement during attack
-
-	# Set attack duration based on animation
-	var attack_duration = 0.5
-	if is_heavy:
-		attack_duration = 0.8
-	elif !is_on_floor():
-		attack_duration = 0.4
-
-	_end_attack_timer(attack_duration)
-
-func _end_attack_timer(duration: float):
-	await get_tree().create_timer(duration).timeout
-	attacking = false
-	heavy_attacking = false
-	can_combo = true
-	movementInputMonitoring = Vector2(true, true)
-	# Reset combo after delay if no new attack
-	await get_tree().create_timer(comboWindow).timeout
-	if !attacking:
-		combo_count = 0
-		can_combo = false
-
-func _end_block():
-	blocking = false
-
-func _on_animation_finished(anim_name: String):
-	# Handle specific animation completions
-	match anim_name:
-		"attack", "attack_2", "attack_3", "attack_4":
-			if attacking:
-				can_combo = true
-		"roll":
-			rolling = false
-		"hit", "air_hit":
-			hit_stunned = false
-		"block_start":
-			if blockHold:
-				blocking = true
-		"crouch_start":
-			crouching = true
-		"crouch_end":
-			crouching = false
-		"jump_landing":
-			pass  # Landing complete
-		"dash_attack", "shield_dash_end":
-			dashing = false
-
-# Public function to trigger hit reaction (can be called by enemy attacks)
-func take_damage(damage: int = 1, knockback: Vector2 = Vector2.ZERO):
-	if !blocking or knockback.length() > 200:
-		hit_stunned = true
-		attacking = false
-		blocking = false
-		velocity += knockback
-		_end_hit_stun(0.5)
-
-func _end_hit_stun(duration: float):
-	await get_tree().create_timer(duration).timeout
-	hit_stunned = false
