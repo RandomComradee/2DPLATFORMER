@@ -1,7 +1,5 @@
 extends CharacterBody2D
 
-class_name PlatformerController2D
-
 @export var README: String = "IMPORTANT: MAKE SURE TO ASSIGN 'left' 'right' 'jump' 'dash' 'up' 'down' 'roll' 'latch' 'twirl' 'run' 'attack' 'heavy_attack' 'block' in the project settings input map. Enhanced animation system with full knight moveset support."
 #INFO READEME
 #IMPORTANT: MAKE SURE TO ASSIGN 'left' 'right' 'jump' 'dash' 'up' 'down' 'roll' 'latch' 'twirl' 'run' 'attack' 'heavy_attack' 'block'  in the project settings input map. THIS IS REQUIRED
