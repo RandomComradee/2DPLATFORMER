@@ -300,10 +300,10 @@ func _process(_delta):
 		#wall slide and latch
 		if latched and !wasLatched:
 			anim.speed_scale = 1
-			anim.play("latch")
+			anim.play("wall_slide_contact")
 		if is_on_wall() and velocity.y > 0 and slide and anim.animation != "slide" and wallSliding != 1:
 			anim.speed_scale = 1
-			anim.play("slide")
+			anim.play("wall_slide_loop")
 			
 		#dash
 		if dashing:

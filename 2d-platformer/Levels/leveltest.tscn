@@ -3,14 +3,18 @@
 [ext_resource type="PackedScene" uid="uid://dexfqiwsy6kjg" path="res://Player/Player.tscn" id="1_8gj3m"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_s4i8f"]
-distance = -352.0
+distance = -505.5
 
 [sub_resource type="BoxMesh" id="BoxMesh_s4i8f"]
 
 [node name="Level" type="Node2D"]
 
 [node name="Player" parent="." instance=ExtResource("1_8gj3m")]
-position = Vector2(576, 304)
+position = Vector2(880, 448)
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+position = Vector2(0, -96)
+zoom = Vector2(2, 2)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 position = Vector2(576, 0)
@@ -20,6 +24,6 @@ position = Vector2(0, -16)
 shape = SubResource("WorldBoundaryShape2D_s4i8f")
 
 [node name="MeshInstance2D" type="MeshInstance2D" parent="."]
-position = Vector2(575.74994, 491.75)
-scale = Vector2(1152.4999, 312.5)
+position = Vector2(959.87506, 784)
+scale = Vector2(1920.25, 592)
 mesh = SubResource("BoxMesh_s4i8f")

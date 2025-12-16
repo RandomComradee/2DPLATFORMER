@@ -3295,10 +3295,23 @@ size = Vector2(27, 42)
 script = ExtResource("1_3qydi")
 PlayerSprite = NodePath("AnimatedSprite2D")
 PlayerCollider = NodePath("CollisionShape2D")
+wallJump = true
+crouch = true
+run = true
+jump = true
+idle = true
+walk = true
+slide = true
+latch = true
+falling = true
+crouch_idle = true
+crouch_walk = true
+roll = true
+metadata/_edit_vertical_guides_ = [-85.0]
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_q3lat")
-animation = &"idle"
+animation = &"wall_slide_contact"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(-0.5, 11)
