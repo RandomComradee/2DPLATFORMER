@@ -106,6 +106,10 @@ class_name PlatformerController2D
 @export_category("Enhanced Animations")
 ##Enable the enhanced animation system (uses all 70 knight animations automatically)
 @export var useEnhancedAnimations: bool = true
+##Use the new dedicated animation controller for better transitions (recommended)
+@export var useAnimationController: bool = true
+##Reference to the animation controller node (auto-created if not assigned)
+@export var animationController: PlayerAnimationController
 
 
 
@@ -209,9 +213,27 @@ func _ready():
 	wasMovingR = true
 	anim = PlayerSprite
 	col = PlayerCollider
-	
+
 	_updateData()
+	_setup_animation_controller()
 	
+func _setup_animation_controller():
+	if !useAnimationController:
+		return
+
+	# If no animation controller assigned, create one
+	if animationController == null:
+		animationController = PlayerAnimationController.new()
+		animationController.name = "AnimationController"
+		add_child(animationController)
+
+	# Configure the animation controller
+	animationController.controller = self
+	animationController.sprite = anim
+	animationController._max_speed = maxSpeedLock
+	animationController._wall_sliding = wallSliding
+	animationController._anim_scale_lock = animScaleLock
+
 func _updateData():
 	acceleration = maxSpeed / timeToReachMaxSpeed
 	deceleration = -maxSpeed / timeToReachZeroSpeed
@@ -277,10 +299,42 @@ func _updateData():
 
 func _process(delta):
 	#INFO Enhanced Animation System
+	# If using the new animation controller, it handles everything automatically
+	if useAnimationController and animationController != null:
+		# Animation controller handles animations in its own _process
+		# We just need to handle attack/block/hit animations when triggered
+		_handle_combat_animations()
+		return
+
 	if useEnhancedAnimations:
 		_handle_enhanced_animations(delta)
 	else:
 		_handle_legacy_animations()
+
+func _handle_combat_animations():
+	# Let the animation controller handle combat-specific animations
+	if !animationController:
+		return
+
+	# Attack animations (override animation controller when attacking)
+	if attacking:
+		animationController.play_attack_animation(
+			combo_count, heavy_attacking, !is_on_floor(), crouching, velocity.y
+		)
+
+	# Block animations
+	if blocking and enableBlocking:
+		animationController.play_block_animation(blockTap, false)
+	elif !blocking and _was_blocking:
+		animationController.play_block_animation(false, true)
+
+	# Hit animations
+	if hit_stunned:
+		animationController.play_hit_animation(!is_on_floor())
+
+	_was_blocking = blocking
+
+var _was_blocking: bool = false
 
 func _handle_legacy_animations():
 	# Keep original animation system for backwards compatibility
