@@ -137,21 +137,23 @@ func update_state() -> void:
 		sprite.scale.x = -sprite_scale.x
 
 	# State calculations
-	var moving := abs(vel.x) > 10.0
-	var at_max_speed := abs(vel.x) >= max_speed * 0.8
-	var rising := vel.y < -50.0
-	var falling := vel.y > 50.0
-	var at_apex := !rising and !falling and !on_floor
+	var vel_x_abs: float = absf(vel.x)
+	var moving: bool = vel_x_abs > 10.0
+	var at_max_speed: bool = vel_x_abs >= max_speed * 0.8
+	var rising: bool = vel.y < -50.0
+	var falling: bool = vel.y > 50.0
+	var at_apex: bool = !rising and !falling and !on_floor
 
 	# Detect transitions
-	var just_landed := on_floor and !prev_on_floor
-	var just_left_ground := !on_floor and prev_on_floor
-	var just_touched_wall := on_wall and !prev_on_wall and !on_floor
-	var just_started_crouch := crouching and !prev_crouching
-	var just_stopped_crouch := !crouching and prev_crouching
-	var just_reached_max := at_max_speed and !prev_at_max_speed and prev_moving
-	var just_stopped := !moving and prev_moving
-	var direction_changed := prev_moving and moving and sign(vel.x) != sign(prev_velocity_x) and abs(prev_velocity_x) > 10.0
+	var just_landed: bool = on_floor and !prev_on_floor
+	var just_left_ground: bool = !on_floor and prev_on_floor
+	var just_touched_wall: bool = on_wall and !prev_on_wall and !on_floor
+	var just_started_crouch: bool = crouching and !prev_crouching
+	var just_stopped_crouch: bool = !crouching and prev_crouching
+	var just_reached_max: bool = at_max_speed and !prev_at_max_speed and prev_moving
+	var just_stopped: bool = !moving and prev_moving
+	var prev_vel_abs: float = absf(prev_velocity_x)
+	var direction_changed: bool = prev_moving and moving and sign(vel.x) != sign(prev_velocity_x) and prev_vel_abs > 10.0
 
 	# Determine target state
 	var target: State = current_state

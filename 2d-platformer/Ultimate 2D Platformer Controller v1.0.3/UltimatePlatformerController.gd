@@ -337,11 +337,11 @@ func _jump() -> void:
 		_jumpWasPressed = false
 
 func _wallJump() -> void:
-	var hKick := abs(_jumpMagnitude * cos(wallKickAngle * PI / 180))
-	var vKick := abs(_jumpMagnitude * sin(wallKickAngle * PI / 180))
+	var hKick: float = absf(_jumpMagnitude * cos(wallKickAngle * PI / 180))
+	var vKick: float = absf(_jumpMagnitude * sin(wallKickAngle * PI / 180))
 	velocity.y = -vKick
-	var latchHold := Input.is_action_pressed("latch")
-	var dir := -1 if (wallLatchingModifer and latchHold) else 1
+	var latchHold: bool = Input.is_action_pressed("latch")
+	var dir: int = -1 if (wallLatchingModifer and latchHold) else 1
 	velocity.x = (-hKick if _wasMovingR else hKick) * dir
 	if inputPauseAfterWallJump > 0:
 		_moveInputEnabled = Vector2(false, false)
