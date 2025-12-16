@@ -297,42 +297,15 @@ func _updateData():
 
 func _process(delta):
 	#INFO Enhanced Animation System
-	# If using the new animation controller, it handles everything automatically
+	# If using the new animation controller, it handles movement animations automatically
 	if useAnimationController and animationController != null:
-		# Animation controller handles animations in its own _process
-		# We just need to handle attack/block/hit animations when triggered
-		_handle_combat_animations()
-		return
-
-	if useEnhancedAnimations:
+		# Animation controller handles its own _process for movement
+		# Only run legacy/enhanced for combat animations that controller skips
+		pass
+	elif useEnhancedAnimations:
 		_handle_enhanced_animations(delta)
 	else:
 		_handle_legacy_animations()
-
-func _handle_combat_animations():
-	# Let the animation controller handle combat-specific animations
-	if !animationController:
-		return
-
-	# Attack animations (override animation controller when attacking)
-	if attacking:
-		animationController.play_attack_animation(
-			combo_count, heavy_attacking, !is_on_floor(), crouching, velocity.y
-		)
-
-	# Block animations
-	if blocking and enableBlocking:
-		animationController.play_block_animation(blockTap, false)
-	elif !blocking and _was_blocking:
-		animationController.play_block_animation(false, true)
-
-	# Hit animations
-	if hit_stunned:
-		animationController.play_hit_animation(!is_on_floor())
-
-	_was_blocking = blocking
-
-var _was_blocking: bool = false
 
 func _handle_legacy_animations():
 	# Keep original animation system for backwards compatibility
