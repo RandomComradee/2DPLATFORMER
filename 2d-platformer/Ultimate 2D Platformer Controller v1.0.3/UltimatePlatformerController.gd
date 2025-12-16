@@ -288,11 +288,13 @@ func _process(_delta):
 	#jump
 	if velocity.y < 0 and jump and !dashing:
 		anim.speed_scale = 1
-		anim.play("jump")
+		anim.play("jump_rise_loop")
 		
 	if velocity.y > 40 and falling and !dashing and !crouching:
 		anim.speed_scale = 1
-		anim.play("falling")
+		anim.play("jump_transition")
+		await anim.animation_finished
+		anim.play("jump_fall_loop")
 		
 	if latch and slide:
 		#wall slide and latch
