@@ -3291,8 +3291,14 @@ animations = [{
 "speed": 8.0
 }]
 
-[node name="Player" type="CharacterBody2D"]
+[node name="Player" type="CharacterBody2D" node_paths=PackedStringArray("PlayerSprite", "PlayerCollider")]
 script = ExtResource("1_3qydi")
+PlayerSprite = NodePath("AnimatedSprite2D")
+PlayerCollider = NodePath("CollisionShape2D")
+wallJump = true
+crouch = true
+enableCombat = false
+enableBlocking = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 unique_name_in_owner = true
@@ -3303,3 +3309,8 @@ shape = SubResource("RectangleShape2D_collision")
 unique_name_in_owner = true
 sprite_frames = SubResource("SpriteFrames_q3lat")
 animation = &"idle"
+
+[node name="Camera2D" type="Camera2D" parent="."]
+offset = Vector2(0, -25)
+zoom = Vector2(2, 2)
+position_smoothing_enabled = true
